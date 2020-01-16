@@ -1,7 +1,7 @@
 // N3.js implementations of the RDF/JS core data types
 // See https://github.com/rdfjs/representation-task-force/blob/master/interface-spec.md
-
 import namespaces from './IRIs';
+
 const { rdf, xsd } = namespaces;
 
 var DataFactory, DEFAULTGRAPH;
@@ -140,6 +140,20 @@ class Variable extends Term {
   }
 }
 
+class Facet extends Term {
+  constructor(val) {
+    super(`(${val})`);
+  }
+
+  get termType() {
+    return 'Facet';
+  }
+
+  get value() {
+    return this.id;
+  }
+}
+
 // ## DefaultGraph constructor
 class DefaultGraph extends Term {
   constructor() {
@@ -189,6 +203,11 @@ function fromId(id, factory) {
     return factory.literal(id.substr(1, endPos - 1),
             id[endPos + 1] === '@' ? id.substr(endPos + 2)
                                    : factory.namedNode(id.substr(endPos + 3)));
+  case '(': {
+    if (facet = id.match(/(?<=^\().*(?=\)$)/)) {
+      return factory.facet(facet[0])
+    }
+  }
   default:  return factory.namedNode(id);
   }
 }
@@ -204,15 +223,16 @@ function toId(term) {
 
   // Term instantiated with another library
   switch (term.termType) {
-  case 'NamedNode':    return term.value;
-  case 'BlankNode':    return '_:' + term.value;
-  case 'Variable':     return '?' + term.value;
-  case 'DefaultGraph': return '';
-  case 'Literal':      return '"' + term.value + '"' +
-    (term.language ? '@' + term.language :
-      (term.datatype && term.datatype.value !== xsd.string ? '^^' + term.datatype.value : ''));
-  default: throw new Error('Unexpected termType: ' + term.termType);
-  }
+    case 'NamedNode':    return term.value;
+    case 'BlankNode':    return '_:' + term.value;
+    case 'Variable':     return '?' + term.value;
+    case 'Facet':        return '(' + term.value + ')';
+    case 'DefaultGraph': return '';
+    case 'Literal':      return '"' + term.value + '"' +
+      (term.language ? '@' + term.language :
+        (term.datatype && term.datatype.value !== xsd.string ? '^^' + term.datatype.value : ''));
+    default: throw new Error('Unexpected termType: ' + term.termType);
+    }
 }
 
 
@@ -251,6 +271,7 @@ DataFactory = {
   namedNode,
   blankNode,
   variable,
+  facet,
   literal,
   defaultGraph,
   quad,
@@ -262,6 +283,7 @@ DataFactory = {
     NamedNode,
     BlankNode,
     Variable,
+    Facet,
     Literal,
     DefaultGraph,
     Quad,
@@ -317,6 +339,11 @@ function literal(value, languageOrDataType) {
 // ### Creates a variable
 function variable(name) {
   return new Variable(name);
+}
+
+// ### Create a Facet
+function facet(name) {
+  return new Facet(name);
 }
 
 // ### Returns the default graph

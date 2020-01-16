@@ -1,5 +1,6 @@
 // **N3Lexer** tokenizes N3 documents.
 import namespaces from './IRIs';
+
 const { xsd } = namespaces;
 
 const { fromCharCode } = String;
@@ -52,6 +53,7 @@ export default class N3Lexer {
     this._comment = /#([^\n\r]*)/;
     this._whitespace = /^[ \t]+/;
     this._endOfFile = /^(?:#[^\n\r]*)?$/;
+    this._dgraphFacet = /\([a-zA-Z0-9]+=[a-zA-Z0-9]\)(?=\s*\.\s*)/;
     options = options || {};
 
     // In line mode (N-Triples or N-Quads), only simple features may be parsed
@@ -283,11 +285,17 @@ export default class N3Lexer {
       case '!':
         if (!this._n3Mode)
           break;
+      case '(': {
+        if (match = this._dgraphFacet.exec(input)) {
+          type = 'facet';
+          value = match[0];
+          break;
+        }
+      }
       case ',':
       case ';':
       case '[':
       case ']':
-      case '(':
       case ')':
       case '{':
       case '}':

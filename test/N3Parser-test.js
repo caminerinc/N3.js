@@ -1,4 +1,4 @@
-import { Parser, DataFactory } from '../src/';
+import { DataFactory, Parser } from '../src/';
 
 const { NamedNode, Quad, fromId } = DataFactory.internal;
 
@@ -1491,6 +1491,18 @@ describe('Parser', function () {
 
     it('should not parse an invalid ^ path',
       shouldNotParse(parser, '<a>^"invalid" ', 'Expected entity but got literal on line 1.'));
+
+    it('should parse quads with facet',
+      // shouldParse('<0x1> <has_column> <0x2> (order=1).', ['0x1', 'has_column', '0x2', '(order=1)']));
+      shouldParse(parser, [
+                    `<0x1> <has_column> <0x2> (order=1).`, 
+                    `<0x1> <name> <0x2> .`,
+                    `<0x1> <has_column> <0x3> (order=2).`
+                  ].join('\n'),
+                  ['0x1', 'has_column', '0x2', '(order=1)'],
+                  ['0x1', 'name', '0x2'],
+                  ['0x1', 'has_column', '0x3', '(order=2)']
+                  ));
   });
 
   describe('A Parser instance for the N3 format with the explicitQuantifiers option', function () {
@@ -2023,8 +2035,9 @@ function shouldParse(parser, input) {
           return t;
 
         // Append base to relative IRIs
-        if (!/^$|^["?]|:/.test(t))
+        if (!/^$|^["?]|:|(?<=^\()[a-zA-Z0-9=]*(?=\)$)/.test(t)){
           t = BASE_IRI + t;
+        }
         return fromId(t);
       });
       return new Quad(item[0], item[1], item[2], item[3]);

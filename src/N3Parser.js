@@ -1,8 +1,8 @@
-// **N3Parser** parses N3 documents.
-import N3Lexer from './N3Lexer';
-import N3DataFactory from './N3DataFactory';
 import namespaces from './IRIs';
+import N3DataFactory from './N3DataFactory';
+import N3Lexer from './N3Lexer';
 
+// **N3Parser** parses N3 documents.
 // The next ID for new blank nodes
 var blankNodePrefix = 0, blankNodeCount = 0;
 
@@ -175,6 +175,13 @@ export default class N3Parser {
       value = this._variable(token.value.substr(1));
       break;
     // Everything else is not an entity
+    case 'facet':
+      let _val = token.value.match(/(?<=\().*(?=\))/);
+      if (_val.length) {
+        _val = _val[0];
+        value = this._facet(_val);
+        break;
+      }
     default:
       return this._error('Expected entity but got ' + token.type, token);
     }
@@ -552,6 +559,11 @@ export default class N3Parser {
     case ',':
       next = this._readObject;
       break;
+    case 'facet':
+      if (this._graph === null && (graph = this._readEntity(token)) !== undefined) {
+        next = this._readQuadPunctuation;
+        break;
+      }
     default:
       // An entity means this is a quad (only allowed if not already inside a graph)
       if (this._supportsQuads && this._graph === null && (graph = this._readEntity(token)) !== undefined) {
@@ -694,7 +706,7 @@ export default class N3Parser {
   _readQuantifierPunctuation(token) {
     // Read more quantifiers
     if (token.type === ',')
-      return this._readQuantifierList;
+    return this._readQuantifierList;
     // End of the quantifier list
     else {
       // With explicit quantifiers, close the quantifier list
@@ -717,23 +729,23 @@ export default class N3Parser {
   // ### `_readPath` reads a potential path
   _readPath(token) {
     switch (token.type) {
-    // Forward path
+      // Forward path
     case '!': return this._readForwardPath;
     // Backward path
     case '^': return this._readBackwardPath;
     // Not a path; resume reading where we left off
     default:
       var stack = this._contextStack, parent = stack.length && stack[stack.length - 1];
-      // If we were reading a list item, we still need to output it
-      if (parent && parent.type === 'item') {
-        // The list item is the remaining subejct after reading the path
-        var item = this._subject;
-        // Switch back to the context of the list
-        this._restoreContext();
-        // Output the list item
-        this._emit(this._subject, this.RDF_FIRST, item, this._graph);
-      }
-      return this._afterPath(token);
+        // If we were reading a list item, we still need to output it
+        if (parent && parent.type === 'item') {
+          // The list item is the remaining subejct after reading the path
+          var item = this._subject;
+          // Switch back to the context of the list
+          this._restoreContext();
+          // Output the list item
+          this._emit(this._subject, this.RDF_FIRST, item, this._graph);
+        }
+        return this._afterPath(token);
     }
   }
 
@@ -943,6 +955,7 @@ function initDataFactory(parser, factory) {
   parser._blankNode   = factory.blankNode;
   parser._literal     = factory.literal;
   parser._variable    = factory.variable;
+  parser._facet       = factory.facet;
   parser._quad        = factory.quad;
   parser.DEFAULTGRAPH = factory.defaultGraph();
 
