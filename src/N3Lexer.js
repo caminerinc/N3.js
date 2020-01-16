@@ -53,7 +53,7 @@ export default class N3Lexer {
     this._comment = /#([^\n\r]*)/;
     this._whitespace = /^[ \t]+/;
     this._endOfFile = /^(?:#[^\n\r]*)?$/;
-    this._dgraphFacet = /\([a-zA-Z0-9]+=[a-zA-Z0-9]\)(?=\s*\.\s*)/;
+    this._dgraphFacet = /\([\w\s=,]+\)(?=\s*\.\s*)/;
     options = options || {};
 
     // In line mode (N-Triples or N-Quads), only simple features may be parsed

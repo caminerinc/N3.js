@@ -1497,10 +1497,12 @@ describe('Parser', function () {
       shouldParse(parser, [
                     `<0x1> <has_column> <0x2> (order=1).`, 
                     `<0x1> <name> <0x2> .`,
+                    `<0x9eb3e> <has_column> <0x999> (order=0, width=200) .`,
                     `<0x1> <has_column> <0x3> (order=2).`
                   ].join('\n'),
                   ['0x1', 'has_column', '0x2', '(order=1)'],
                   ['0x1', 'name', '0x2'],
+                  ['0x9eb3e', 'has_column', '0x999', '(order=0, width=200)'],
                   ['0x1', 'has_column', '0x3', '(order=2)']
                   ));
   });
@@ -2035,7 +2037,7 @@ function shouldParse(parser, input) {
           return t;
 
         // Append base to relative IRIs
-        if (!/^$|^["?]|:|(?<=^\()[a-zA-Z0-9=]*(?=\)$)/.test(t)){
+        if (!/^$|^["?]|:|(?<=^\()[\w\s=,]*(?=\)$)/.test(t)){
           t = BASE_IRI + t;
         }
         return fromId(t);
